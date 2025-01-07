@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  streamlit:
+    image: python:3.9  # Imagen base de Python
+    container_name: streamlit_app
+    restart: always
+    working_dir: /app  # Carpeta de trabajo dentro del contenedor
+    volumes:
+      - .:/app  # Montar tu código local dentro del contenedor
+    ports:
+      - "8501:8501"  # Puerto para acceder a Streamlit
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017/
+      - MONGODB_DB_NAME=asistente
+    command: >
+      sh -c "pip install -r requirements.txt && streamlit run app.py"
+
+  mongodb:
+    image: mongo:6.0  # Usando la última versión estable de MongoDB
+    container_name: mongodb_asistente
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: asistente  # Base de datos inicial
+    ports:
+      - "27017:27017"  # Exponer el puerto predeterminado de MongoDB
+    volumes:
+      - mongo_data:/data/db  # Persistencia de datos
+
+volumes:
+  mongo_data:
+    driver: local
