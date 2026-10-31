@@ -12,7 +12,8 @@ class DBManager:
         db_name = os.getenv("MONGODB_DB_NAME")
         if not uri or not db_name:
             raise ValueError("MONGODB_URI o MONGODB_DB_NAME no están configurados en el archivo .env.")
-        self.client = MongoClient(uri)
+        # Fallar en 5 s (en vez de 30) si MongoDB no está en marcha
+        self.client = MongoClient(uri, serverSelectionTimeoutMS=5000)
         self.db = self.client[db_name]
 
     def save_data(self, collection_name, data):
@@ -26,6 +27,11 @@ class DBManager:
         if query is None:
             query = {}
         return list(collection.find(query))
+
+    def update_data(self, collection_name, query, values):
+        """Actualiza los campos indicados del primer documento que cumpla la consulta."""
+        collection = self.db[collection_name]
+        collection.update_one(query, {"$set": values})
 
     def delete_data(self, collection_name, query):
         """Elimina documentos de una colección específica."""
