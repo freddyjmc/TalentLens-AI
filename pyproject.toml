@@ -1,0 +1,22 @@
+[project]
+name = "talentlens-ai"
+version = "1.0.0"
+description = "Asistente de búsqueda de empleo con IA: CV para ATS, búsqueda de ofertas y seguimiento de candidaturas."
+requires-python = ">=3.9"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+
+[tool.coverage.run]
+source = ["talentlens"]
+omit = ["talentlens/ui/*"]
+
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM"]
+ignore = ["UP006", "UP007", "UP035"]  # se mantienen typing.List/Optional por compatibilidad con Python 3.9

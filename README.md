@@ -1,107 +1,159 @@
 # TalentLens AI
 
-Asistente de búsqueda de empleo con IA. Ayuda a analizar ofertas, revisar tu CV, practicar entrevistas y guardar todo en una base de datos, desde una sola aplicación web.
+[![CI](https://github.com/freddyjmc/TalentLens-AI/actions/workflows/ci.yml/badge.svg)](https://github.com/freddyjmc/TalentLens-AI/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.9%20%7C%203.11-blue)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.25-FF4B4B)
 
-> Proyecto desarrollado durante el bootcamp de IA de F5.
+Asistente de búsqueda de empleo con IA: optimiza tu CV para filtros ATS, busca ofertas reales que encajen con él, lleva el control de tus candidaturas y practica entrevistas, desde una sola aplicación web.
 
-<!-- TODO: añade aquí una captura de pantalla o un GIF de la app -->
-<!-- ![TalentLens AI](docs/captura.png) -->
+> Proyecto desarrollado durante el bootcamp de IA de F5 y ampliado después.
+
+![CV optimizado para ATS](docs/img/cv_ats.png)
+
+<table>
+  <tr>
+    <td><img src="docs/img/verificacion.png" alt="Verificación del CV generado"></td>
+    <td><img src="docs/img/buscar_empleo.png" alt="Búsqueda de ofertas puntuadas por la IA"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Verificación automática del CV generado</sub></td>
+    <td align="center"><sub>Ofertas reales de Adzuna puntuadas según el CV</sub></td>
+  </tr>
+</table>
+
+![Panel de candidaturas](docs/img/candidaturas.png)
+
+<sub>Capturas con un CV ficticio.</sub>
 
 ## Qué hace
 
 | Sección | Descripción |
 |---|---|
-| **Analizar ofertas** | Sube la oferta en texto o PDF, o pega un enlace, y obtén el puesto, la empresa, la ubicación, las habilidades requeridas, palabras clave y un resumen. |
-| **Revisar CV** | Sube tu CV en texto o PDF y recibe una valoración sobre si pasaría filtros ATS, con sugerencias de mejora. |
+| **Revisar CV** | Sube tu CV (texto, PDF o Word) y recibe una valoración sobre si pasaría filtros ATS, con sugerencias de mejora. |
 | **CV optimizado para ATS** | Genera una versión de tu CV preparada para filtros ATS (opcionalmente para un puesto concreto) y descárgala en PDF, Word o TXT. No inventa datos: lo que falta queda marcado como `[COMPLETAR]`. Un verificador revisa el resultado antes de descargarlo. |
-| **Buscar empleo** | A partir de tu CV (el optimizado, uno guardado o uno que subas en texto, PDF o Word), la IA propone los puestos a buscar, consulta ofertas reales en la API de Adzuna y puntúa de 0 a 100 cuánto encaja cada una, explicando por qué. Cada oferta enlaza primero a la web de la empresa y después al anuncio. |
+| **Buscar empleo** | A partir de tu CV, la IA propone los puestos a buscar, consulta ofertas reales en la API de Adzuna y puntúa de 0 a 100 cuánto encaja cada una, explicando por qué. Cada oferta enlaza primero a la web de la empresa y después al anuncio. |
 | **Mis candidaturas** | Panel de seguimiento por CV: marca una oferta como postulada y sigue su estado (Postulada, Vista, Entrevista, Descartada, Aceptada) con notas. También puedes añadir candidaturas a mano. La inscripción siempre la haces tú. |
+| **Analizar ofertas** | Pega un enlace o sube la oferta y obtén puesto, empresa, ubicación, habilidades requeridas, palabras clave y un resumen. |
 | **Practicar entrevistas** | Indica un rol y genera preguntas habituales de entrevista. |
 | **Asistente inteligente** | Chat con un asistente especializado en empleo, CVs y desarrollo profesional. |
 | **Datos guardados** | Consulta las ofertas, revisiones de CV y CVs optimizados guardados en MongoDB y descárgalos en CSV. |
 
 ## Tecnologías
 
-- **Python 3.9+**
-- **Streamlit**: interfaz web
-- **OpenAI API** (`gpt-4o-mini`): análisis, revisión y chat
-- **MongoDB** con **PyMongo**: almacenamiento
-- **Adzuna API**: búsqueda de ofertas de empleo reales
-- **Requests** y **lxml**: lectura de ofertas desde un enlace (con **Selenium** como respaldo para páginas que necesitan JavaScript)
-- **pypdf**: lectura de PDF
-- **python-docx** y **fpdf2**: exportación del CV a Word y PDF
-- **Pandas**: tablas y exportación a CSV
-- **Docker Compose**: base de datos MongoDB
+- **Python** y **Streamlit** para la interfaz web
+- **OpenAI API** (`gpt-4o-mini`, configurable) para análisis, generación, verificación y chat
+- **Adzuna API** para la búsqueda de ofertas reales
+- **MongoDB** con **PyMongo** para el almacenamiento
+- **Requests** y **lxml** para leer ofertas desde un enlace (con **Selenium** como respaldo)
+- **pypdf**, **python-docx** y **fpdf2** para leer CVs y exportarlos a PDF y Word
+- **pytest**, **mongomock** y **ruff** para tests y calidad de código
+- **Docker** y **GitHub Actions** para el despliegue local y la integración continua
 
-## Instalación
+## Arquitectura
 
-### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/freddyjmc/TalentLens-AI.git
-cd TalentLens-AI
+```mermaid
+flowchart LR
+    UI["talentlens/ui<br/>(páginas de Streamlit)"] --> CV["talentlens/cv"]
+    UI --> OFF["talentlens/offers"]
+    UI --> JOBS["talentlens/jobs"]
+    UI --> DB["talentlens/db.py"]
+    CV --> LLM["talentlens/llm.py"]
+    OFF --> LLM
+    JOBS --> LLM
+    JOBS --> ADZ[(Adzuna API)]
+    LLM --> OAI[(OpenAI API)]
+    DB --> MDB[(MongoDB)]
 ```
 
-### 2. Crear el entorno e instalar dependencias
-
-```bash
-python -m venv venv
-venv\Scripts\activate        # Windows
-# source venv/bin/activate   # Linux / macOS
-pip install -r requirements.txt
-```
-
-### 3. Configurar variables de entorno
-
-Copia `.env.example` como `.env` y completa tu clave de OpenAI:
-
-```bash
-copy .env.example .env       # Windows
-# cp .env.example .env       # Linux / macOS
-```
-
-| Variable | Para qué sirve |
-|---|---|
-| `OPENAI_API_KEY` | Clave de la API de OpenAI |
-| `MONGODB_URI` | Dirección de MongoDB (en local, `mongodb://localhost:27017/`) |
-| `MONGODB_DB_NAME` | Nombre de la base de datos (en `.env.example`, `asistente`) |
-| `OPENAI_MODEL` | Opcional. Modelo de OpenAI (por defecto `gpt-4o-mini`) |
-| `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | Credenciales gratuitas de [Adzuna](https://developer.adzuna.com/) para «Buscar empleo» |
-
-### 4. Arrancar MongoDB
-
-```bash
-docker compose up -d mongodb
-```
-
-### 5. Ejecutar la aplicación
-
-```bash
-streamlit run app.py
-```
-
-Se abrirá en <http://localhost:8501>.
-
-> **Nota:** la lectura de ofertas desde un enlace funciona sin navegador, también dentro de Docker. Solo las páginas que necesitan JavaScript usan Selenium, que requiere Google Chrome instalado (en local). Algunas webs bloquean la lectura automática: en ese caso la app lo indica y puedes subir el texto de la oferta como archivo.
+- **La interfaz no contiene lógica de negocio.** Las páginas de `talentlens/ui` solo muestran datos y llaman a los servicios, que son funciones puras o casi puras y se pueden probar sin Streamlit.
+- **Un único punto de acceso a la IA** (`llm.py`): el modelo, los límites de tokens y el modo JSON se configuran en un solo sitio, y los tests lo sustituyen por una IA simulada.
+- **Configuración sin efectos secundarios al importar**: `config.get_settings()` lee el entorno una vez y la conexión a MongoDB se crea cuando se necesita.
 
 ## Estructura del proyecto
 
 ```
 TalentLens-AI/
-├── app.py               # Interfaz de Streamlit
-├── db_manager.py        # Conexión y operaciones con MongoDB
-├── cv_reviewer.py       # Revisión de CV con OpenAI
-├── cv_generator.py      # Generación del CV optimizado para ATS
-├── cv_export.py         # Exportación del CV a PDF, Word y TXT
-├── cv_verifier.py       # Verificación del CV generado (reglas + segunda revisión con IA)
-├── job_search.py        # Búsqueda de ofertas en Adzuna y puntuación con IA
-├── offer_analysis.py    # Análisis de ofertas con OpenAI
-├── offer_scraper.py     # Lectura de ofertas desde un enlace
-├── config.py            # Configuración de OpenAI (clave, modelo y límite de tokens)
-├── docker-compose.yml   # MongoDB
-├── requirements.txt
-└── .env.example
+├── app.py                      # Punto de entrada: menú y navegación
+├── talentlens/
+│   ├── config.py               # Configuración desde variables de entorno
+│   ├── llm.py                  # Cliente único de OpenAI
+│   ├── db.py                   # Acceso a MongoDB
+│   ├── files.py                # Lectura de TXT, PDF y Word
+│   ├── assistant.py            # Entrevistas y chat
+│   ├── cv/
+│   │   ├── review.py           # Revisión del CV
+│   │   ├── generator.py        # CV optimizado para ATS
+│   │   ├── verifier.py         # Verificación (reglas + segunda revisión con IA)
+│   │   └── export.py           # Exportación a PDF, Word y TXT
+│   ├── offers/
+│   │   ├── scraper.py          # Lectura de ofertas desde un enlace
+│   │   └── analysis.py         # Análisis de ofertas
+│   ├── jobs/
+│   │   ├── search.py           # Búsqueda en Adzuna y puntuación con IA
+│   │   └── applications.py     # Candidaturas y estados
+│   └── ui/                     # Una página de Streamlit por sección
+├── tests/                      # Tests unitarios (sin red ni claves)
+├── docs/img/                   # Capturas del README
+├── Dockerfile
+├── docker-compose.yml          # App + MongoDB
+├── pyproject.toml              # Configuración de pytest, coverage y ruff
+├── requirements.txt            # Dependencias de la app
+├── requirements-dev.txt        # + herramientas de desarrollo
+├── .env.example
+└── LICENSE
 ```
+
+## Instalación
+
+### 1. Clonar y configurar
+
+```bash
+git clone https://github.com/freddyjmc/TalentLens-AI.git
+cd TalentLens-AI
+cp .env.example .env         # en Windows: copy .env.example .env
+```
+
+Rellena el `.env`:
+
+| Variable | Para qué sirve |
+|---|---|
+| `OPENAI_API_KEY` | Clave de la API de OpenAI |
+| `OPENAI_MODEL` | Opcional. Modelo de OpenAI (por defecto `gpt-4o-mini`) |
+| `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | Credenciales gratuitas de [Adzuna](https://developer.adzuna.com/) para «Buscar empleo» |
+| `MONGODB_URI` | Dirección de MongoDB (en local, `mongodb://localhost:27017/`) |
+| `MONGODB_DB_NAME` | Nombre de la base de datos (por ejemplo, `asistente`) |
+
+### 2a. Ejecutar con Docker (recomendado)
+
+```bash
+docker compose up -d --build
+```
+
+Abre <http://localhost:8501>. Para pararlo: `docker compose stop`.
+
+### 2b. Ejecutar en local
+
+```bash
+python -m venv venv
+venv\Scripts\activate        # Windows (en Linux / macOS: source venv/bin/activate)
+pip install -r requirements.txt
+docker compose up -d mongodb
+streamlit run app.py
+```
+
+> **Lectura de ofertas por enlace:** funciona sin navegador, también en Docker. Solo las páginas que necesitan JavaScript usan Selenium, que requiere Google Chrome (en local). Si una web bloquea la lectura automática, la app lo indica y puedes subir el texto de la oferta como archivo.
+
+## Tests y calidad
+
+```bash
+pip install -r requirements-dev.txt
+pytest --cov          # tests unitarios con cobertura
+ruff check .          # estilo y errores comunes
+```
+
+- **56 tests** que cubren el **96 %** de la lógica (`talentlens/` sin la interfaz).
+- **Sin red ni claves**: OpenAI, Adzuna, las webs de empleo y MongoDB se sustituyen por dobles de prueba (`tests/conftest.py`). Si un test intentara una llamada real, fallaría.
+- **Integración continua**: GitHub Actions ejecuta ruff y pytest en Python 3.9 y 3.11, y construye la imagen de Docker en cada push.
 
 ## Verificación del CV generado
 
@@ -114,14 +166,20 @@ Es una comprobación práctica, no una garantía frente a un ATS concreto.
 
 ## Seguridad
 
-- Las claves se leen desde variables de entorno y `.env` está en `.gitignore`.
-- El `docker-compose.yml` expone MongoDB **sin contraseña** en el puerto 27017. Está pensado solo para desarrollo local: no lo uses tal cual en un servidor.
+- Las claves solo se leen desde variables de entorno; `.env` está en `.gitignore` y `.dockerignore`.
+- El contenedor de la app se ejecuta con un usuario sin privilegios.
+- MongoDB no tiene contraseña en este entorno local, por eso `docker-compose.yml` solo lo expone en `127.0.0.1`. No lo uses tal cual en un servidor.
+- La app no se salta protecciones anti-bot: si una web bloquea la lectura automática, se lo indica al usuario.
 
 ## Mejoras futuras
 
-- Migrar a la versión actual del SDK de OpenAI.
-- Tests automáticos.
+- Migrar al SDK actual de OpenAI y a una versión reciente de Streamlit.
+- Tests de la interfaz con `streamlit.testing`.
 - Despliegue online de la demo.
+
+## Licencia
+
+Distribuido bajo la licencia MIT. Consulta [LICENSE](LICENSE).
 
 ## Autor
 

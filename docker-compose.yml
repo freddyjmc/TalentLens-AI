@@ -1,32 +1,27 @@
-version: '3.8'
-
 services:
   streamlit:
-    image: python:3.9  # Imagen base de Python
+    build: .
     container_name: streamlit_app
-    restart: always
-    working_dir: /app  # Carpeta de trabajo dentro del contenedor
-    volumes:
-      - .:/app  # Montar tu código local dentro del contenedor
+    restart: unless-stopped
     ports:
-      - "8501:8501"  # Puerto para acceder a Streamlit
+      - "8501:8501"
+    env_file: .env  # claves de OpenAI y Adzuna
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/
-      - MONGODB_DB_NAME=asistente
-    command: >
-      sh -c "pip install -r requirements.txt && streamlit run app.py"
+      # Dentro de Docker, MongoDB se alcanza por el nombre del servicio (tiene prioridad sobre el .env)
+      MONGODB_URI: mongodb://mongodb:27017/
+      MONGODB_DB_NAME: asistente
+    depends_on:
+      - mongodb
 
   mongodb:
-    image: mongo:6.0  # Usando la última versión estable de MongoDB
+    image: mongo:6.0
     container_name: mongodb_asistente
-    restart: always
-    environment:
-      MONGO_INITDB_DATABASE: asistente  # Base de datos inicial
+    restart: unless-stopped
     ports:
-      - "27017:27017"  # Exponer el puerto predeterminado de MongoDB
+      # Solo accesible desde este equipo: MongoDB no tiene contraseña en este entorno local
+      - "127.0.0.1:27017:27017"
     volumes:
-      - mongo_data:/data/db  # Persistencia de datos
+      - mongo_data:/data/db
 
 volumes:
   mongo_data:
-    driver: local

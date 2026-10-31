@@ -1,8 +1,9 @@
-import openai
-from config import OPENAI_MAX_TOKENS, OPENAI_MODEL, configure_openai
+"""Generación de una versión del CV optimizada para filtros ATS."""
 
-# Configurar OpenAI
-configure_openai()
+from talentlens import llm
+from talentlens.config import get_settings
+
+SYSTEM_PROMPT = "Eres un experto en redacción de CVs y sistemas ATS."
 
 # Formato que se pide a la IA: sencillo para que lo lean los ATS y fácil de exportar
 ATS_INSTRUCTIONS = """Reescribe este CV para que pase filtros ATS (Applicant Tracking Systems).
@@ -33,18 +34,20 @@ Datos de contacto en una línea
 Usa "## " para cada sección, "### " para cada puesto o estudio y "- " para cada punto."""
 
 
-def generate_ats_cv(cv_text, target_role=""):
-    """Genera una versión del CV optimizada para filtros ATS, sin inventar datos."""
+def build_prompt(cv_text: str, target_role: str = "") -> str:
+    """Construye la petición a la IA, con el puesto objetivo si se indica."""
     prompt = f"{ATS_INSTRUCTIONS}\n\nCV original:\n{cv_text}"
-    if target_role:
-        prompt += f"\n\nPuesto objetivo: {target_role}. Prioriza las palabras clave de ese puesto que el CV justifique."
-    response = openai.ChatCompletion.create(
-        model=OPENAI_MODEL,
-        messages=[
-            {"role": "system", "content": "Eres un experto en redacción de CVs y sistemas ATS."},
-            {"role": "user", "content": prompt}
-        ],
-        max_tokens=OPENAI_MAX_TOKENS * 2,
-        temperature=0.2  # poca creatividad: reescribir, no inventar
+    if target_role.strip():
+        prompt += (f"\n\nPuesto objetivo: {target_role.strip()}. "
+                   "Prioriza las palabras clave de ese puesto que el CV justifique.")
+    return prompt
+
+
+def generate_ats_cv(cv_text: str, target_role: str = "") -> str:
+    """Genera una versión del CV optimizada para filtros ATS, sin inventar datos."""
+    return llm.ask(
+        SYSTEM_PROMPT,
+        build_prompt(cv_text, target_role),
+        max_tokens=get_settings().openai_max_tokens * 2,
+        temperature=0.2,  # poca creatividad: reescribir, no inventar
     )
-    return response['choices'][0]['message']['content'].strip()

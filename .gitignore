@@ -43,6 +43,7 @@ htmlcov/
 .pytest_cache/
 
 # Static analysis tools
+.ruff_cache/
 .mypy_cache/
 .pyre/
 .pytype/
